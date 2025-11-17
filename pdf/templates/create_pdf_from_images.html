@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create PDF from Images</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 700px; margin: auto; }
+        h1 { color: #333; text-align: center; }
+        label { display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold; }
+        input[type="file"], select, input[type="number"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            width: 100%;
+            margin-top: 20px; /* Added margin */
+        }
+        input[type="submit"]:hover {
+            background-color: #218838;
+        }
+        .home-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .home-link:hover {
+            text-decoration: underline;
+        }
+        #image-preview-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+            background-color: #f9f9f9;
+        }
+        .preview-image-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: grab;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .preview-image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        .preview-image-container.dragging {
+            opacity: 0.5;
+            border: 2px dashed #007bff;
+        }
+        .preview-image-container .filename {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create PDF from Images</h1>
+        <form id="pdfCreateForm" method="POST" enctype="multipart/form-data">
+            <div>
+                <label for="images">Select Images (PNG, JPG):</label>
+                <input type="file" id="images" name="images" multiple required accept="image/png, image/jpeg">
+            </div>
+
+            <label>Arrange Images (Drag & Drop):</label>
+            <div id="image-preview-area">
+                <p style="color: #888;">Select images to see previews here and reorder them.</p>
+            </div>
+            <input type="hidden" name="image_order" id="image_order">
+
+            <div>
+                <label for="orientation">Page Orientation:</label>
+                <select id="orientation" name="orientation">
+                    <option value="P" selected>Portrait</option>
+                    <option value="L">Landscape</option>
+                </select>
+            </div>
+            <div>
+                <label for="page_size">Page Size:</label>
+                <select id="page_size" name="page_size">
+                    <option value="A4" selected>A4</option>
+                    <option value="Letter">Letter</option>
+                    <option value="A3">A3</option>
+                    <option value="A5">A5</option>
+                    <!-- Add more common page sizes as needed -->
+                </select>
+            </div>
+            <div>
+                <label for="margin">Margin (in mm):</label>
+                <input type="number" id="margin" name="margin" value="10" min="0" step="1">
+            </div>
+            <input type="submit" value="Create PDF">
+        </form>
+        <a href="/" class="home-link">Back to Home</a>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('images');
+        const previewArea = document.getElementById('image-preview-area');
+        const imageOrderInput = document.getElementById('image_order');
+        const pdfCreateForm = document.getElementById('pdfCreateForm');
+        let draggedItem = null;
+        let fileList = []; // To store File objects
+
+        imageUpload.addEventListener('change', function(event) {
+            previewArea.innerHTML = ''; // Clear previous previews
+            fileList = Array.from(event.target.files); // Store File objects
+            const initialOrder = [];
+
+            fileList.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const container = document.createElement('div');
+                    container.classList.add('preview-image-container');
+                    container.draggable = true;
+                    container.dataset.fileName = file.name; // Store original filename
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    container.appendChild(img);
+
+                    const fileNameSpan = document.createElement('span');
+                    fileNameSpan.classList.add('filename');
+                    fileNameSpan.textContent = file.name;
+                    container.appendChild(fileNameSpan);
+
+                    previewArea.appendChild(container);
+                    addDragEvents(container);
+                }
+                reader.readAsDataURL(file);
+                initialOrder.push(file.name);
+            });
+            if (fileList.length > 0 && previewArea.querySelector('p')) {
+                 previewArea.querySelector('p').style.display = 'none';
+            } else if (fileList.length === 0 && !previewArea.querySelector('p')) {
+                const p = document.createElement('p');
+                p.style.color = '#888';
+                p.textContent = 'Select images to see previews here and reorder them.';
+                previewArea.appendChild(p);
+            }
+            updateImageOrderInput();
+        });
+
+        function addDragEvents(item) {
+            item.addEventListener('dragstart', () => {
+                draggedItem = item;
+                setTimeout(() => item.classList.add('dragging'), 0);
+            });
+
+            item.addEventListener('dragend', () => {
+                setTimeout(() => {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                }, 0);
+                updateImageOrderInput();
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(previewArea, e.clientX);
+                if (afterElement == null) {
+                    previewArea.appendChild(draggedItem);
+                } else {
+                    previewArea.insertBefore(draggedItem, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, x) {
+            const draggableElements = [...container.querySelectorAll('.preview-image-container:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function updateImageOrderInput() {
+            const orderedFileNames = [];
+            previewArea.querySelectorAll('.preview-image-container').forEach(container => {
+                orderedFileNames.push(container.dataset.fileName);
+            });
+            imageOrderInput.value = JSON.stringify(orderedFileNames);
+        }
+
+        pdfCreateForm.addEventListener('submit', function(event) {
+            // Ensure the image_order input is updated right before submission
+            updateImageOrderInput();
+
+            // Re-construct the FileList in the correct order for submission
+            // This is a bit complex as FileList is immutable.
+            // Instead, we'll rely on the server to use the image_order.
+            // The 'images' input will send all files, and the server will sort them.
+            if (fileList.length === 0 && imageUpload.required) {
+                alert("Please select images to upload.");
+                event.preventDefault();
+                return;
+            }
+        });
+
+    </script>
+</body>
+</html>
