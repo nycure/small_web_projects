@@ -1,1 +1,1 @@
-In this Repository I have Very small Projects which i done while learning.
+This repository contains a collection of small projects that I built while learning.
