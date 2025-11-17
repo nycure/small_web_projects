@@ -53,7 +53,7 @@ FLUSH PRIVILEGES;
 
 1. Navigate to the project directory:
    ```powershell
-   cd "d:\website\wifi router update"
+   cd "d:\wifi router update"
    ```
 
 2. Install Python dependencies:
@@ -186,3 +186,4 @@ The interface is designed to be easily customizable:
 ## License
 
 This project is created for educational and demonstration purposes.
+
